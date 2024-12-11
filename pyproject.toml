@@ -1,0 +1,13 @@
+[project]
+name = "sunly"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "astral>=3.2",
+    "pytz>=2024.2",
+    "streamlit-geolocation>=0.0.10",
+    "streamlit>=1.40.2",
+    "timezonefinder>=6.5.7",
+]
