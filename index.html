@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sundial Time</title>
+    <style>
+       body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-sizing: border-box;
+            transition: background-color 0.3s, box-shadow 0.3s;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            font-size: 2em;
+            transition: color 0.3s;
+        }
+
+        #status {
+            font-style: italic;
+            margin-bottom: 25px;
+            font-size: 0.9em;
+            transition: color 0.3s;
+        }
+
+        #result {
+            font-size: 1.5em;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: inline-block;
+            margin-top: 10px;
+            transition: color 0.3s, border-color 0.3s;
+        }
+
+        /* Light Mode Styles */
+        body.light-mode {
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        .light-mode .container {
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .light-mode h2 {
+            color: #4CAF50;
+        }
+        .light-mode #status {
+            color: #666;
+        }
+
+        .light-mode #result {
+            color: #2196F3;
+            border: 2px solid #2196F3;
+        }
+
+        /* Dark Mode Styles */
+        body.dark-mode {
+            background-color: #121212;
+            color: #eee;
+        }
+
+        .dark-mode .container {
+            background-color: #292929;
+            box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
+        }
+
+        .dark-mode h2 {
+            color: #81c784;
+        }
+
+        .dark-mode #status{
+            color: #999;
+        }
+
+        .dark-mode #result {
+            color: #64b5f6;
+            border: 2px solid #64b5f6;
+        }
+
+          /* Toggle Button Styles */
+        .toggle-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex; /* Use flexbox for layout */
+            align-items: center; /* Vertically center items */
+        }
+
+        .toggle-checkbox {
+            display: none;
+        }
+
+        .toggle-label {
+            background-color: #4CAF50;
+            border-radius: 34px;
+            cursor: pointer;
+            display: inline-block;
+            height: 24px;
+            position: relative;
+            width: 48px;
+            transition: background-color 0.3s;
+            margin-left: 8px; /* Add space between icon and toggle */
+        }
+
+        .toggle-label:after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background-color: #fff;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #2196F3;
+        }
+
+        .toggle-checkbox:checked + .toggle-label:after {
+            transform: translateX(24px);
+        }
+
+        /* Dark Mode Icon Styles */
+       .toggle-icon {
+            font-size: 1.2em; /* Adjust size as needed */
+            color: #777;
+            transition: color 0.3s;
+            user-select: none; /* Prevent text selection */
+       }
+
+       .dark-mode .toggle-icon{
+         color: #eee;
+       }
+      .light-mode .toggle-icon {
+        color: #f1c40f; /* Sun color for light mode */
+       }
+
+        /* Footer Styles */
+        .footer {
+           position: absolute;
+           bottom: 10px; /* Stick to the bottom */
+           right: 20px;
+           font-size: 0.8em;
+           color: #777;
+           transition: color 0.3s;
+        }
+
+        .footer a {
+            color: inherit;
+            text-decoration: none;
+        }
+        .footer a:hover{
+             text-decoration: underline;
+        }
+         /* Dark mode footer */
+        .dark-mode .footer{
+             color: #aaa;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+            h2 {
+                font-size: 1.8em;
+            }
+            #result {
+                font-size: 1.3em;
+            }
+        }
+    </style>
+</head>
+<body class="light-mode">
+    <div class="container">
+        <h2>Sundial Time</h2>
+        <div id="status">Detecting location...</div>
+        <div id="result"></div>
+    </div>
+
+     <div class="toggle-container">
+        <span class="toggle-icon">☀️</span>
+        <input type="checkbox" id="dark-mode-toggle" class="toggle-checkbox">
+        <label for="dark-mode-toggle" class="toggle-label"></label>
+    </div>
+
+    <footer class="footer">
+        Made by: <a href="https://github.com/salimelawad" target="_blank">Salim El Awad</a>
+    </footer>
+
+    <script>
+         let userLatitude = null;
+        let userLongitude = null;
+        let userTimezone = null;
+
+        const statusDiv = document.getElementById("status");
+        const resultDiv = document.getElementById("result");
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+        const body = document.body;
+        const toggleIcon = document.querySelector('.toggle-icon'); // Get the icon element
+
+        // Function to set the theme
+       function setTheme(isDarkMode) {
+            if (isDarkMode) {
+                body.classList.remove('light-mode');
+                body.classList.add('dark-mode');
+                darkModeToggle.checked = true;
+                toggleIcon.textContent = '🌙'; // Change to moon icon
+            } else {
+                body.classList.remove('dark-mode');
+                body.classList.add('light-mode');
+                darkModeToggle.checked = false;
+                toggleIcon.textContent = '☀️'; // Change to sun icon
+            }
+        }
+
+        // Check for user's preferred color scheme
+        function checkPreferredColorScheme() {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                setTheme(true); // Set to dark mode
+            } else {
+                setTheme(false); //Set to light mode
+            }
+        }
+
+       function calculateSundialTime() {
+            if (userLatitude === null || userLongitude === null || userTimezone === null) {
+                statusDiv.innerText = "Location not detected. Please wait for location detection to complete.";
+                return;
+            }
+
+            const now = new Date();
+            const dayOfYear = getDayOfYear(now);
+            const B = (360 / 365.24) * (dayOfYear - 81) * Math.PI / 180;
+            const equationOfTime = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+            const timeZoneOffset = -(new Date().getTimezoneOffset() / 60);
+            const lstm = 15 * timeZoneOffset;
+            const timeCorrection = 4 * (userLongitude - lstm) + equationOfTime;
+            const localSolarTime = new Date(now.getTime() + timeCorrection * 60 * 1000);
+            const formattedSundialTime = localSolarTime.toLocaleTimeString();
+
+            resultDiv.innerText = `Sundial Time: ${formattedSundialTime}`;
+        }
+
+        function getDayOfYear(date) {
+            const start = new Date(date.getFullYear(), 0, 0);
+            const diff = date - start;
+            const oneDay = 1000 * 60 * 60 * 24;
+            return Math.floor(diff / oneDay);
+        }
+
+        function detectLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        userLatitude = position.coords.latitude;
+                        userLongitude = position.coords.longitude;
+                        userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+                        statusDiv.innerText = `Location detected: Latitude ${userLatitude.toFixed(4)}, Longitude ${userLongitude.toFixed(4)}. Timezone: ${userTimezone}`;
+                        calculateSundialTime();
+                        setInterval(calculateSundialTime, 1000);
+                    },
+                    (error) => {
+                        statusDiv.innerText = "Location detection failed: " + error.message + ". Please ensure location services are enabled.";
+                    }
+                );
+            } else {
+                statusDiv.innerText = "Geolocation is not supported by your browser.";
+            }
+        }
+
+        // Event listener for the dark mode toggle
+        darkModeToggle.addEventListener('change', () => {
+            setTheme(darkModeToggle.checked);
+        });
+
+        // Check preferred color scheme on load
+        checkPreferredColorScheme();
+        detectLocation();
+    </script>
+</body>
+</html>
