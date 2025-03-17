@@ -197,7 +197,7 @@
 </head>
 <body class="light-mode">
     <div class="container">
-        <h2>Sundial Time</h2>
+        <h2>Suunly Time</h2>
         <div id="status">Detecting location...</div>
         <div id="result"></div>
     </div>
@@ -263,7 +263,7 @@
             const localSolarTime = new Date(now.getTime() + timeCorrection * 60 * 1000);
             const formattedSundialTime = localSolarTime.toLocaleTimeString();
 
-            resultDiv.innerText = `Sundial Time: ${formattedSundialTime}`;
+            resultDiv.innerText = `Suunly Time: ${formattedSundialTime}`;
         }
 
         function getDayOfYear(date) {
