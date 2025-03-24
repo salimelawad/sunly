@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Suunly Time</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" rel="stylesheet">
     <style>
        body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -22,11 +23,42 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             padding: 30px;
             text-align: center;
-            max-width: 400px;
+            max-width: 600px;
             width: 90%;
             box-sizing: border-box;
             transition: background-color 0.3s, box-shadow 0.3s;
             margin-bottom: 20px;
+        }
+
+        #map {
+            height: 300px;
+            width: 100%;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .map-tooltip {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-width: 200px;
+            display: none;
+        }
+
+        .dark-mode .map-tooltip {
+            background: rgba(41, 41, 41, 0.9);
+            color: #eee;
+        }
+
+        .map-container {
+            position: relative;
         }
 
         h2 {
@@ -35,21 +67,85 @@
             transition: color 0.3s;
         }
 
+        .location-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
         #status {
             font-style: italic;
-            margin-bottom: 25px;
             font-size: 0.9em;
             transition: color 0.3s;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .loading-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #2196F3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .dark-mode .loading-spinner {
+            border: 2px solid #333;
+            border-top: 2px solid #64b5f6;
         }
 
         #result {
             font-size: 1.5em;
             font-weight: bold;
-            padding: 10px 20px;
+            padding: 15px 25px;
             border-radius: 8px;
             display: inline-block;
             margin-top: 10px;
-            transition: color 0.3s, border-color 0.3s;
+            transition: all 0.3s ease;
+            background: rgba(33, 150, 243, 0.1);
+            position: relative;
+            cursor: help;
+        }
+
+        #result::after {
+            content: "Solar time based on your location";
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 4px;
+            font-size: 0.7em;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        #result:hover::after {
+            opacity: 1;
+            visibility: visible;
+            bottom: 120%;
+        }
+
+        .dark-mode #result::after {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
         }
 
         /* Light Mode Styles */
@@ -97,6 +193,7 @@
         .dark-mode #result {
             color: #64b5f6;
             border: 2px solid #64b5f6;
+            background: rgba(100, 181, 246, 0.1);
         }
 
           /* Toggle Button Styles */
@@ -181,6 +278,30 @@
              color: #aaa;
         }
 
+        .reset-btn {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .reset-btn:hover {
+            background-color: #1976D2;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .reset-btn:active {
+            transform: translateY(0);
+        }
+
         /* Responsive adjustments */
         @media (max-width: 480px) {
             .container {
@@ -193,12 +314,121 @@
                 font-size: 1.3em;
             }
         }
+
+        /* About Button and Modal Styles */
+        .about-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: none;
+            border: none;
+            font-size: 1.2em;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            color: #666;
+        }
+
+        .about-btn:hover {
+            background: rgba(0, 0, 0, 0.1);
+            transform: scale(1.1);
+        }
+
+        .dark-mode .about-btn {
+            color: #999;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .dark-mode .modal-content {
+            background: #292929;
+            color: #eee;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #666;
+            transition: color 0.3s;
+        }
+
+        .dark-mode .close-modal {
+            color: #999;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .dark-mode .close-modal:hover {
+            color: #eee;
+        }
+
+        .modal h3 {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+
+        .dark-mode .modal h3 {
+            color: #81c784;
+        }
+
+        .modal p {
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .modal ul {
+            text-align: left;
+            margin: 20px 0;
+            padding-left: 20px;
+        }
+
+        .modal li {
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body class="light-mode">
     <div class="container">
+        <button class="about-btn" id="about-btn">ℹ️</button>
         <h2>Suunly Time</h2>
-        <div id="status">Detecting location...</div>
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="map-tooltip">Click anywhere on the map to change location</div>
+        </div>
+        <div class="location-controls">
+            <div id="status">
+                <div class="loading-spinner"></div>
+                <span>Detecting location...</span>
+            </div>
+            <button id="reset-location" class="reset-btn">↺ Reset</button>
+        </div>
         <div id="result"></div>
     </div>
 
@@ -212,16 +442,122 @@
         Made by: <a href="https://github.com/salimelawad" target="_blank">Salim El Awad</a>
     </footer>
 
+    <!-- About Modal -->
+    <div class="modal" id="about-modal">
+        <div class="modal-content">
+            <span class="close-modal" id="close-modal">&times;</span>
+            <h3>About Solar Time</h3>
+            <p>Solar time is based on the position of the sun in the sky. Unlike standard time, which uses fixed time zones, solar time varies based on your exact location on Earth.</p>
+            <p>Key differences between solar time and standard time:</p>
+            <ul>
+                <li>Solar noon (12:00) occurs when the sun is directly overhead</li>
+                <li>Each degree of longitude equals 4 minutes of solar time difference</li>
+                <li>Solar time varies throughout the year due to Earth's elliptical orbit</li>
+                <li>No daylight saving time adjustments needed</li>
+            </ul>
+            <p>This app calculates solar time based on your location's latitude and longitude, taking into account the equation of time to provide accurate solar time readings.</p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
     <script>
-         let userLatitude = null;
+        let userLatitude = null;
         let userLongitude = null;
         let userTimezone = null;
+        let initialLatitude = null;
+        let initialLongitude = null;
+        let map = null;
+        let marker = null;
 
         const statusDiv = document.getElementById("status");
+        const statusText = statusDiv.querySelector('span');
         const resultDiv = document.getElementById("result");
         const darkModeToggle = document.getElementById('dark-mode-toggle');
         const body = document.body;
-        const toggleIcon = document.querySelector('.toggle-icon'); // Get the icon element
+        const toggleIcon = document.querySelector('.toggle-icon');
+        const resetLocationBtn = document.getElementById('reset-location');
+        const loadingSpinner = statusDiv.querySelector('.loading-spinner');
+        const aboutBtn = document.getElementById('about-btn');
+        const aboutModal = document.getElementById('about-modal');
+        const closeModal = document.getElementById('close-modal');
+
+        // Initialize map
+        function initMap() {
+            // Create map if it doesn't exist
+            if (!map) {
+                map = L.map('map').setView([userLatitude, userLongitude], 4);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+
+                // Add click event to change location
+                map.on('click', onMapClick);
+                
+                // Add hover events for tooltip
+                const mapElement = document.getElementById('map');
+                const tooltip = document.querySelector('.map-tooltip');
+                
+                mapElement.addEventListener('mouseenter', () => {
+                    tooltip.style.display = 'block';
+                });
+                
+                mapElement.addEventListener('mouseleave', () => {
+                    tooltip.style.display = 'none';
+                });
+            }
+
+            // Add or update marker
+            if (marker) {
+                map.removeLayer(marker);
+            }
+            marker = L.marker([userLatitude, userLongitude]).addTo(map);
+            map.setView([userLatitude, userLongitude], 4);
+        }
+
+        // Handle map click to change location
+        function onMapClick(e) {
+            userLatitude = e.latlng.lat;
+            userLongitude = e.latlng.lng;
+            
+            // Get current zoom level
+            const currentZoom = map.getZoom();
+            
+            // Update marker and view
+            if (marker) {
+                map.removeLayer(marker);
+            }
+            marker = L.marker([userLatitude, userLongitude]).addTo(map);
+            map.setView([userLatitude, userLongitude], currentZoom);
+
+            // Update status and calculate solar time
+            updateStatus(`Manually selected location: Latitude ${userLatitude.toFixed(4)}, Longitude ${userLongitude.toFixed(4)}`);
+            calculateSundialTime();
+        }
+
+        // Reset to initial location
+        function resetLocation() {
+            if (initialLatitude !== null && initialLongitude !== null) {
+                userLatitude = initialLatitude;
+                userLongitude = initialLongitude;
+                userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+                // Update marker and view
+                if (marker) {
+                    map.removeLayer(marker);
+                }
+                marker = L.marker([userLatitude, userLongitude]).addTo(map);
+                map.setView([userLatitude, userLongitude], 4);
+
+                // Update status and calculate solar time
+                updateStatus(`Reset to initial location: Latitude ${userLatitude.toFixed(4)}, Longitude ${userLongitude.toFixed(4)}`);
+                calculateSundialTime();
+            }
+            else {
+                console.log("No initial coordinates available!");
+                updateStatus("No initial location to reset to.");
+            }
+        }
+
 
         // Function to set the theme
        function setTheme(isDarkMode) {
@@ -249,7 +585,7 @@
 
        function calculateSundialTime() {
             if (userLatitude === null || userLongitude === null || userTimezone === null) {
-                statusDiv.innerText = "Location not detected. Please wait for location detection to complete.";
+                updateStatus("Location not detected. Please wait for location detection to complete.");
                 return;
             }
 
@@ -261,9 +597,14 @@
             const lstm = 15 * timeZoneOffset;
             const timeCorrection = 4 * (userLongitude - lstm) + equationOfTime;
             const localSolarTime = new Date(now.getTime() + timeCorrection * 60 * 1000);
-            const formattedSundialTime = localSolarTime.toLocaleTimeString();
+            const formattedSundialTime = localSolarTime.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
 
-            resultDiv.innerText = `Suunly Time: ${formattedSundialTime}`;
+            resultDiv.innerHTML = `<span style="font-size: 0.8em; opacity: 0.8;">Solar Time:</span><br>${formattedSundialTime}`;
         }
 
         function getDayOfYear(date) {
@@ -271,6 +612,11 @@
             const diff = date - start;
             const oneDay = 1000 * 60 * 60 * 24;
             return Math.floor(diff / oneDay);
+        }
+
+        function updateStatus(message) {
+            statusText.textContent = message;
+            loadingSpinner.style.display = message.includes('Detecting') ? 'block' : 'none';
         }
 
         function detectLocation() {
@@ -287,8 +633,11 @@
                         userLatitude = latitude;
                         userLongitude = longitude;
                         userTimezone = timezone;
+                        initialLatitude = latitude;
+                        initialLongitude = longitude;
 
-                        statusDiv.innerText = `Using cached location: Latitude ${userLatitude.toFixed(4)}, Longitude ${userLongitude.toFixed(4)}. Timezone: ${userTimezone}`;
+                        updateStatus(`Using cached location: Latitude ${userLatitude.toFixed(4)}, Longitude ${userLongitude.toFixed(4)}`);
+                        initMap();
                         calculateSundialTime();
                         setInterval(calculateSundialTime, 1000);
                         return; // Exit the function, we're done
@@ -305,21 +654,26 @@
                         userLongitude = position.coords.longitude;
                         userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+                        // Store initial location
+                        initialLatitude = userLatitude;
+                        initialLongitude = userLongitude;
+
                         // Cache the new location
                         const locationData = {
                             latitude: userLatitude,
                             longitude: userLongitude,
                             timezone: userTimezone,
-                            timestamp: Date.now() // Store the current timestamp
+                            timestamp: Date.now()
                         };
                         localStorage.setItem('userLocation', JSON.stringify(locationData));
 
-                        statusDiv.innerText = `Location detected: Latitude ${userLatitude.toFixed(4)}, Longitude ${userLongitude.toFixed(4)}. Timezone: ${userTimezone}`;
+                        updateStatus(`Location detected: Latitude ${userLatitude.toFixed(4)}, Longitude ${userLongitude.toFixed(4)}`);
+                        initMap();
                         calculateSundialTime();
                         setInterval(calculateSundialTime, 1000);
                     },
                     (error) => {
-                        statusDiv.innerText = "Geolocation failed: " + error.message + ".  Falling back to timezone estimate.";
+                        updateStatus(`Geolocation failed: ${error.message}. Falling back to timezone estimate.`);
                         getRoughLocationFromTimezone(); // Fallback to timezone
                     },
                     {
@@ -329,7 +683,7 @@
                     }
                 );
             } else {
-                statusDiv.innerText = "Geolocation is not supported by your browser. Falling back to timezone estimate.";
+                updateStatus("Geolocation is not supported by your browser. Falling back to timezone estimate.");
                 getRoughLocationFromTimezone(); // Fallback to timezone
             }
         }
@@ -401,14 +755,20 @@
                 userLatitude = timezoneCoordinates[timezone].lat;
                 userLongitude = timezoneCoordinates[timezone].lng;
                 userTimezone = timezone; // Keep the detected timezone.
-                statusDiv.innerText = `Estimated Location (from Timezone): Latitude ${userLatitude.toFixed(4)}, Longitude ${userLongitude.toFixed(4)}. Timezone: ${userTimezone}`;
+                initialLatitude = userLatitude;
+                initialLongitude = userLongitude;
+                updateStatus(`Estimated Location (from Timezone): Latitude ${userLatitude.toFixed(4)}, Longitude ${userLongitude.toFixed(4)}`);
+                initMap();
                 calculateSundialTime();
                 setInterval(calculateSundialTime, 1000);
             } else {
-                statusDiv.innerText = "Could not estimate location from timezone.";
+                updateStatus("Could not estimate location from timezone.");
                 // Consider setting a default location here, if even a very rough estimate is needed.
             }
         }
+
+        // Event listener for the reset location button
+        resetLocationBtn.addEventListener('click', resetLocation);
 
         // Event listener for the dark mode toggle
         darkModeToggle.addEventListener('change', () => {
@@ -418,6 +778,21 @@
         // Check preferred color scheme on load
         checkPreferredColorScheme();
         detectLocation();
+
+        // Modal functionality
+        aboutBtn.addEventListener('click', () => {
+            aboutModal.style.display = 'flex';
+        });
+
+        closeModal.addEventListener('click', () => {
+            aboutModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === aboutModal) {
+                aboutModal.style.display = 'none';
+            }
+        });
     </script>
 </body>
 </html>
