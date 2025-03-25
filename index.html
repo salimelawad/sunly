@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Suunly Time</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" rel="stylesheet">
     <style>
@@ -1012,7 +1015,29 @@
             isFullscreen = true;
             fullscreenClock.style.display = 'flex';
             document.body.style.overflow = 'hidden';
+
+            // Force landscape orientation on mobile
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(err => {
+                    console.log('Orientation lock failed:', err);
+                });
+            }
+
+            // Request fullscreen
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            } else if (document.documentElement.webkitRequestFullscreen) {
+                document.documentElement.webkitRequestFullscreen();
+            } else if (document.documentElement.msRequestFullscreen) {
+                document.documentElement.msRequestFullscreen();
+            }
+
+            // Hide URL bar on mobile
+            window.scrollTo(0, 1);
+
             updateFullscreenClock();
+            // Start a timer to keep the URL bar hidden
+            setTimeout(() => window.scrollTo(0, 1), 100);
         });
 
         // Add exit button handler
@@ -1020,16 +1045,61 @@
             isFullscreen = false;
             fullscreenClock.style.display = 'none';
             document.body.style.overflow = '';
+
+            // Exit fullscreen safely
+            try {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen().catch(err => console.log('Error exiting fullscreen:', err));
+                } else if (document.webkitFullscreenElement) {
+                    document.webkitExitFullscreen().catch(err => console.log('Error exiting fullscreen:', err));
+                } else if (document.msFullscreenElement) {
+                    document.msExitFullscreen().catch(err => console.log('Error exiting fullscreen:', err));
+                }
+            } catch (err) {
+                console.log('Error during fullscreen exit:', err);
+            }
+
+            // Release orientation lock safely
+            if (screen.orientation && screen.orientation.unlock) {
+                try {
+                    screen.orientation.unlock();
+                } catch (err) {
+                    console.log('Error unlocking orientation:', err);
+                }
+            }
         });
 
-        // Add escape key handler
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && isFullscreen) {
+        // Handle fullscreen change events
+        function handleFullscreenChange() {
+            // Check if we're actually in fullscreen mode
+            const isInFullscreen = !!(
+                document.fullscreenElement ||
+                document.webkitFullscreenElement ||
+                document.mozFullScreenElement ||
+                document.msFullscreenElement
+            );
+
+            // Only trigger exit if we were in fullscreen and now we're not
+            if (!isInFullscreen && isFullscreen) {
                 isFullscreen = false;
                 fullscreenClock.style.display = 'none';
                 document.body.style.overflow = '';
+
+                // Release orientation lock safely
+                if (screen.orientation && screen.orientation.unlock) {
+                    try {
+                        screen.orientation.unlock();
+                    } catch (err) {
+                        console.log('Error unlocking orientation:', err);
+                    }
+                }
             }
-        });
+        }
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
         function updateFullscreenClock() {
             const now = new Date();
